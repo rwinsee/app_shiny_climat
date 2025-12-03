@@ -245,7 +245,7 @@ ui <- navbarPage(
           )
         )
       ),
-      
+     
       fluidRow(
         column(
           width = 3,
@@ -303,55 +303,70 @@ ui <- navbarPage(
       )
     )
   ),
-  # test animation
+
+  # Onglet : Animations ----
   tabPanel(
-    "Animation",
+    "Animations",
     fluidPage(
+      h3("Animations jours de gel et nuits tropicales"),
+      br(),
+      
+      # Ligne 1 : jours de gel
       fluidRow(
         column(
-          width = 3,
+          width = 6,
           div(
-            class = "sidebar-climat",
-            h4("Animation"),
-            
-            # Choix de l'indicateur (chaud / froid)
-            selectInput(
-              "anim_indic",
-              "Indicateur",
-              choices = c(
-                "Nuits tropicales (chaud)" = "tropical",
-                "Jours avec Tmoy < 0°C (froid)" = "freezing"
-              ),
-              selected = "tropical"
-            ),
-            
-            # Choix de l'échelle temporelle
-            radioButtons(
-              "anim_mode",
-              "Échelle temporelle",
-              choices = c(
-                "Périodes climatiques (30 ans)" = "periode",
-                "Décennies (10 ans)" = "decennie"
-              ),
-              selected = "periode"
-            ),
-            
-            # Slider généré dynamiquement (périodes ou décades)
-            uiOutput("anim_slider_ui"),
-            
-            br(),
-            strong("Temps affiché :"),
-            textOutput("anim_periode_label")
+            class = "top-block",
+            h4("Jours de gel – évolution annuelle"),
+            tags$img(
+              src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/isotherme_animations/freezing_days_evolution.gif",
+              style = "width: 100%; max-height: 350px; object-fit: contain;"
+            )
           )
         ),
         column(
-          width = 9,
-          leafletOutput("map_anim", height = "70vh")
+          width = 6,
+          div(
+            class = "top-block",
+            h4("Jours de gel – intervalles de 20 ans"),
+            tags$img(
+              src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/isotherme_animations/freezing_days_intervals.gif",
+              style = "width: 100%; max-height: 350px; object-fit: contain;"
+            )
+          )
+        )
+      ),
+      
+      br(),
+      h3("Animations nuits tropicales (GIF)"),
+      br(),
+      
+      # Ligne 2 : nuits tropicales
+      fluidRow(
+        column(
+          width = 6,
+          div(
+            class = "top-block",
+            h4("Nuits tropicales – évolution annuelle"),
+            tags$img(
+              src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/tropical_animations/tropical_days_evolution.gif",
+              style = "width: 100%; max-height: 350px; object-fit: contain;"
+            )
+          )
+        ),
+        column(
+          width = 6,
+          div(
+            class = "top-block",
+            h4("Nuits tropicales – intervalles de 20 ans"),
+            tags$img(
+              src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/tropical_animations/tropical_days_intervals.gif",
+              style = "width: 100%; max-height: 350px; object-fit: contain;"
+            )
+          )
         )
       )
-    )
-  )
-  ,
+  ),
   
   # Onglet : À propos ----
   tabPanel(
@@ -575,6 +590,61 @@ server <- function(input, output, session) {
       # centre approximatif Alpes
       setView(lng = 6.5, lat = 45.5, zoom = 7)
   })
+  # ---- Graphique ligne de crête ----
+  # ---- Graphique ligne de crête ----
+  output$plot_ligne_crete <- renderPlot({
+    df <- ligne_crete_df
+    
+    # On garde les lignes où l'altitude du sommet est renseignée
+    df <- df[!is.na(df$Altitude_Sommet), , drop = FALSE]
+    
+    if (!nrow(df)) {
+      plot.new()
+      text(0.5, 0.5, "Aucun sommet avec altitude renseignée.", cex = 0.9)
+      return()
+    }
+    
+    # On ordonne par altitude décroissante pour un effet "ligne de crête"
+    ord <- order(df$Altitude_Sommet, decreasing = TRUE)
+    df  <- df[ord, ]
+    
+    # Couleurs par département
+    dep_fac <- factor(df$Département)
+    cols    <- as.numeric(dep_fac)
+    
+    # Plot en "barres verticales" (type 'h' = segments depuis 0)
+    plot(
+      df$Altitude_Sommet,
+      type = "h",
+      lwd  = 4,
+      col  = cols,
+      xaxt = "n",
+      xlab = "",
+      ylab = "Altitude du sommet (m)",
+      main = "Altitudes des principaux sommets par département"
+    )
+    
+    # Étiquettes en x = noms de sommets (raccourcis)
+    noms_sommets <- trimws(df$Nom_Sommet)
+    axis(
+      1,
+      at = seq_along(df$Altitude_Sommet),
+      labels = noms_sommets,
+      las = 2,
+      cex.axis = 0.5
+    )
+    
+    # Légende des départements
+    legend(
+      "topright",
+      legend = levels(dep_fac),
+      col    = seq_along(levels(dep_fac)),
+      lwd    = 4,
+      cex    = 0.6,
+      bty    = "n"
+    )
+  })
+  
   
   # Mise à jour de la carte + logs ----
   observeEvent(input$btn_maj_carte, {
