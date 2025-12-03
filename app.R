@@ -111,6 +111,8 @@ choose_nc_url <- function(type = c("tropical", "freezing"), periode) {
   url
 }
 
+# Palette couleur perso pour les jours de gel (freezing)
+pal_freezing_fn <- colorRampPalette(c("#B3DFFF", "#2EA8FF", "#004475"))
 
 ###
 
@@ -310,7 +312,62 @@ ui <- navbarPage(
     fluidPage(
       h3("Animations jours de gel et nuits tropicales"),
       br(),
-      
+      # Ligne 0 : ligne de crête
+      fluidRow(
+        column(
+          width = 12,
+  #         div(
+  #           class = "top-block",
+  #           h4("Profil de crêtes avec altitudes de l'isotherme 0°C"),
+  #           tags$img(
+  #             src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/crete_animations/crete_animation.gif",
+  #             style = "
+  #   width: 110%;
+  #   max-height: 1000px;
+  #   object-fit: cover;
+  #   border-radius: 10px;
+  #   background-color: #222;
+  # "            )
+  #         )
+  # Ligne 0 : ligne de crête
+  fluidRow(
+    column(
+      width = 12,
+      div(
+        class = "top-block",
+        h4("Profil de crêtes avec altitudes de l'isotherme 0°C"),
+        div(
+          style = "
+          background-color:#1e1e1e;
+          border-radius:16px;
+          text-align:center;
+          padding:15px;
+          overflow-x:auto;             /* autorise le scroll horizontal si besoin */
+        ",
+          tags$img(
+            src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/crete_animations/crete_animation.gif",
+            style = "
+            transform: scale(1.5);      /* zoom lisible mais modéré */
+            transform-origin: center;
+            width: 1400px;              /* largeur fixe pour bien remplir le bloc */
+            max-width: 100%;
+            height: auto;               /* ajuste la hauteur automatiquement */
+            object-fit: contain;
+            border-radius: 12px;
+            background-color: #1e1e1e;
+            display: inline-block;
+          "
+          )
+        )
+      )
+    )
+  )
+  
+  
+  
+  
+        )
+      ),
       # Ligne 1 : jours de gel
       fluidRow(
         column(
@@ -320,7 +377,7 @@ ui <- navbarPage(
             h4("Jours de gel – évolution annuelle"),
             tags$img(
               src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/isotherme_animations/freezing_days_evolution.gif",
-              style = "width: 100%; max-height: 350px; object-fit: contain;"
+              style = "width: 100%; max-height: 500px; object-fit: contain;"
             )
           )
         ),
@@ -331,14 +388,14 @@ ui <- navbarPage(
             h4("Jours de gel – intervalles de 20 ans"),
             tags$img(
               src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/isotherme_animations/freezing_days_intervals.gif",
-              style = "width: 100%; max-height: 350px; object-fit: contain;"
+              style = "width: 100%; max-height: 500px; object-fit: contain;"
             )
           )
         )
       ),
       
       br(),
-      h3("Animations nuits tropicales (GIF)"),
+      h3("Animations nuits tropicales"),
       br(),
       
       # Ligne 2 : nuits tropicales
@@ -350,7 +407,7 @@ ui <- navbarPage(
             h4("Nuits tropicales – évolution annuelle"),
             tags$img(
               src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/tropical_animations/tropical_days_evolution.gif",
-              style = "width: 100%; max-height: 350px; object-fit: contain;"
+              style = "width: 100%; max-height: 500px; object-fit: contain;"
             )
           )
         ),
@@ -361,11 +418,103 @@ ui <- navbarPage(
             h4("Nuits tropicales – intervalles de 20 ans"),
             tags$img(
               src = "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/tropical_animations/tropical_days_intervals.gif",
-              style = "width: 100%; max-height: 350px; object-fit: contain;"
+              style = "width: 100%; max-height: 500px; object-fit: contain;"
             )
           )
         )
       )
+  )
+  ),
+  # Onglet : Guide d'utilisation ----
+  tabPanel(
+    "Guide d'utilisation",
+    fluidPage(
+      h3("Guide d'utilisation d'Explor'Alpes"),
+      br(),
+      
+      h4("1. Page « Tableau de bord »"),
+      p("Cette page permet d’explorer les cartes de jours de gel et de nuits tropicales pour la région alpine (hors Var)."),
+      tags$ul(
+        tags$li(
+          strong("Scénario climatique : "),
+          "choisissez soit les données historiques, soit un scénario de projection (RCP 4.5 ou RCP 8.5)."
+        ),
+        tags$li(
+          strong("Période : "),
+          "sélectionnez une période climatique (1981–2010, 2011–2040, 2041–2070, 2071–2100)."
+        ),
+        tags$li(
+          strong("Indicateurs : "),
+          "cochez les variables à afficher sur la carte :",
+          tags$ul(
+            tags$li("« Jours avec Tmoy < 0°C » pour les jours de gel en hiver ;"),
+            tags$li("« Nuits avec Tmin ≥ 20°C » pour les nuits tropicales ;"),
+            tags$li("« Isotherme 0°C (altitude) » (future extension).")
+          )
+        ),
+        tags$li(
+          strong("Saison : "),
+          "choisissez la saison d’analyse (Hiver DJF, année complète, été JJA)."
+        ),
+        tags$li(
+          strong("Bouton « Mettre à jour les données » : "),
+          "après avoir réglé les filtres, cliquez pour charger les données NetCDF et rafraîchir la carte."
+        ),
+        tags$li(
+          strong("Carte : "),
+          "une carte leaflet affiche l’intensité de l’indicateur sur la région alpine, avec une légende et un recentrage automatique sur la zone d’étude."
+        ),
+        tags$li(
+          strong("Indicateurs en haut de page : "),
+          "les KPI synthétisent le nombre moyen de jours de gel, de nuits tropicales et la période analysée."
+        )
+      ),
+      
+      tags$hr(),
+      h4("2. Page « Animations »"),
+      p("Cette page présente des animations pré-calculées illustrant l’évolution de l’isotherme 0°C, des jours de gel et des nuits tropicales."),
+      tags$ul(
+        tags$li(
+          strong("Profil de crêtes avec altitudes de l'isotherme 0°C : "),
+          "animation montrant, pour chaque département alpin, l’altitude des principaux sommets et la position moyenne de l’isotherme 0°C sur la période récente. Elle permet de visualiser la marge de manœuvre entre les reliefs et l’altitude de 0°C."
+        ),
+        tags$li(
+          strong("Jours de gel – évolution annuelle : "),
+          "GIF montrant l’évolution année par année du nombre de jours avec température moyenne inférieure à 0°C."
+        ),
+        tags$li(
+          strong("Jours de gel – intervalles de 20 ans : "),
+          "GIF montrant des cartes moyennées par grandes périodes (20 ans) pour visualiser les tendances de fond."
+        ),
+        tags$li(
+          strong("Nuits tropicales – évolution annuelle : "),
+          "GIF montrant la progression dans le temps des nuits avec Tmin ≥ 20°C."
+        ),
+        tags$li(
+          strong("Nuits tropicales – intervalles de 20 ans : "),
+          "variation des nuits tropicales par grandes périodes, pour comparer les régimes climatiques."
+        )
+      ),
+      
+      
+      tags$hr(),
+      h4("3. Page « À propos »"),
+      p("Cette page décrit le contexte du projet, les sources de données, les indicateurs suivis et présente l’équipe ayant contribué au développement de l’outil."),
+      tags$ul(
+        tags$li("Contexte du hackathon « Climat des données »."),
+        tags$li("Description des jeux de données climatiques utilisés."),
+        tags$li("Liste des usages visés (sensibilisation, compréhension des impacts, etc.)."),
+        tags$li("Présentation de l’équipe projet.")
+      ),
+      
+      tags$hr(),
+      h4("Conseils de lecture"),
+      tags$ul(
+        tags$li("Commencer par le « Tableau de bord » pour explorer un indicateur et une période en particulier."),
+        tags$li("Passer ensuite par « Animations » pour visualiser la dynamique temporelle globale."),
+        tags$li("Utiliser « À propos » et ce guide pour comprendre le cadre scientifique et les limites de l’outil.")
+      )
+    )
   ),
   
   # Onglet : À propos ----
@@ -408,7 +557,7 @@ ui <- navbarPage(
         tags$li("Maëlle ABRAHAM (Consultante adaptation - Carbone 4)"),
         tags$li("Etienne PAUTHENET (Data Scientist - IRD Brest)"),
         tags$li("Lucio LURASCHI (Ingénieur logiciel - EDF)"),
-        tags$li("Sandrine PARADOWSKI (Géomaticienne - DDT 77 )"),
+        tags$li("Sandrine PARADOWSKI (Géomaticienne - DDT 77)"),
         tags$li("Romuald WEIDMANN (Développeur R - INSEE)"),
         tags$li("Justine SOMMERLATT (Data Scientist - BKW)")
       ),
@@ -543,7 +692,21 @@ server <- function(input, output, session) {
       return()
     }
     
-    pal <- colorNumeric("viridis", domain = vals, na.color = "transparent")
+    # Palette conditionnelle : bleu pour jours de gel, viridis pour nuits tropicales
+    if (type_sel == "freezing") {
+      pal <- colorNumeric(
+        palette  = pal_freezing_fn(256),
+        domain   = vals,
+        na.color = "transparent"
+      )
+    } else {
+      pal <- colorNumeric(
+        palette  = "viridis",
+        domain   = vals,
+        na.color = "transparent"
+      )
+    }
+    
     
     e <- raster::extent(r_raster)
     
@@ -697,7 +860,19 @@ server <- function(input, output, session) {
       return()
     }
     
-    pal <- colorNumeric("viridis", domain = vals, na.color = "transparent")
+    if (type_sel == "freezing") {
+      pal <- colorNumeric(
+        palette  = pal_freezing_fn(256),
+        domain   = vals,
+        na.color = "transparent"
+      )
+    } else {
+      pal <- colorNumeric(
+        palette  = "viridis",
+        domain   = vals,
+        na.color = "transparent"
+      )
+    }
     
     kpi_val <- round(mean(vals, na.rm = TRUE), 1)
     if (cible_kpi == "nuits") {
