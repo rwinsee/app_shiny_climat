@@ -303,8 +303,56 @@ ui <- navbarPage(
       )
     )
   ),
+  # test animation
+  tabPanel(
+    "Animation",
+    fluidPage(
+      fluidRow(
+        column(
+          width = 3,
+          div(
+            class = "sidebar-climat",
+            h4("Animation"),
+            
+            # Choix de l'indicateur (chaud / froid)
+            selectInput(
+              "anim_indic",
+              "Indicateur",
+              choices = c(
+                "Nuits tropicales (chaud)" = "tropical",
+                "Jours avec Tmoy < 0°C (froid)" = "freezing"
+              ),
+              selected = "tropical"
+            ),
+            
+            # Choix de l'échelle temporelle
+            radioButtons(
+              "anim_mode",
+              "Échelle temporelle",
+              choices = c(
+                "Périodes climatiques (30 ans)" = "periode",
+                "Décennies (10 ans)" = "decennie"
+              ),
+              selected = "periode"
+            ),
+            
+            # Slider généré dynamiquement (périodes ou décades)
+            uiOutput("anim_slider_ui"),
+            
+            br(),
+            strong("Temps affiché :"),
+            textOutput("anim_periode_label")
+          )
+        ),
+        column(
+          width = 9,
+          leafletOutput("map_anim", height = "70vh")
+        )
+      )
+    )
+  )
+  ,
   
-  # Onglet : À propos ----
   # Onglet : À propos ----
   tabPanel(
     "À propos",
@@ -365,6 +413,147 @@ server <- function(input, output, session) {
   # ---- KPI réactifs ----
   kpi_nuits <- reactiveVal("—")
   kpi_froid <- reactiveVal("—")
+  
+  # Vecteurs de temps pour l'animation ----
+  periodes_vec  <- c("1981–2010", "2011–2040", "2041–2070", "2071–2100")
+  # À adapter si on a moins/plus de fichiers, mais l'idée est :
+  decennies_vec <- c(
+    "1990–1999",
+    "2000–2009",
+    "2010–2019",
+    "2020–2029",
+    "2030–2039",
+    "2040–2049",
+    "2050–2059",
+    "2060–2069",
+    "2070–2079",
+    "2080–2089"
+  )  
+  # Carte animée initiale ----
+  # Carte animée initiale ----
+  output$map_anim <- renderLeaflet({
+    leaflet() |>
+      addTiles() |>
+      setView(lng = 6.5, lat = 45.5, zoom = 7)
+  })
+  
+  # Slider dynamique selon le mode (périodes / décades) ----
+  output$anim_slider_ui <- renderUI({
+    if (req(input$anim_mode) == "periode") {
+      sliderInput(
+        "anim_index",
+        "Période climatique",
+        min = 1,
+        max = length(periodes_vec),
+        value = 1,
+        step = 1,
+        ticks = FALSE,
+        animate = animationOptions(interval = 2000, loop = TRUE)
+      )
+    } else {
+      sliderInput(
+        "anim_index",
+        "Décennie",
+        min = 1,
+        max = length(decennies_vec),
+        value = 1,
+        step = 1,
+        ticks = FALSE,
+        animate = animationOptions(interval = 2000, loop = TRUE)
+      )
+    }
+  })
+  
+  # Label affiché sous les filtres ----
+  output$anim_periode_label <- renderText({
+    req(input$anim_mode, input$anim_index)
+    if (input$anim_mode == "periode") {
+      periodes_vec[input$anim_index]
+    } else {
+      decennies_vec[input$anim_index]
+    }
+  })
+  
+  # Animation : met à jour la carte selon indicateur + période/décennie ----
+  observeEvent(input$anim_index, {
+    req(input$anim_mode, input$anim_indic, input$anim_index)
+    
+    # --- choix texte affiché & URL NetCDF ---
+    if (input$anim_mode == "periode") {
+      # Mode périodes climatiques : on réutilise choose_nc_url()
+      periode_label <- periodes_vec[input$anim_index]
+      type_sel      <- input$anim_indic  # "tropical" ou "freezing"
+      url_sel       <- choose_nc_url(type_sel, periode_label)
+      leg_title     <- if (type_sel == "tropical") {
+        paste0("Nuits tropicales / an (", periode_label, ")")
+      } else {
+        paste0("Jours avec Tmoy < 0°C (", periode_label, ")")
+      }
+    } else {
+      # Mode décades : on prend directement le i-ème fichier
+      type_sel <- input$anim_indic
+      vec      <- if (type_sel == "tropical") tropical_nc_urls else freezing_nc_urls
+      
+      idx <- max(1, min(input$anim_index, length(vec)))
+      url_sel   <- vec[idx]
+      dec_label <- decennies_vec[idx]
+      
+      leg_title <- if (type_sel == "tropical") {
+        paste0("Nuits tropicales / an (", dec_label, ")")
+      } else {
+        paste0("Jours avec Tmoy < 0°C (", dec_label, ")")
+      }
+    }
+    
+    # Logs
+    cat("\n=== [ANIM] Mise à jour de la carte ===\n")
+    cat("→ Mode temporel :", input$anim_mode, "\n")
+    cat("→ Indicateur    :", input$anim_indic, "\n")
+    cat("→ URL NetCDF    :", url_sel, "\n")
+    
+    # Chargement du raster
+    dest <- file.path(tempdir(), basename(url_sel))
+    if (!file.exists(dest)) {
+      download.file(url_sel, dest, mode = "wb")
+    }
+    
+    r_raster <- raster::raster(dest)
+    raster::extent(r_raster) <- unname(alpes_bbox)
+    raster::crs(r_raster)    <- "+proj=longlat +datum=WGS84 +no_defs"
+    
+    vals <- raster::values(r_raster)
+    vals <- vals[is.finite(vals)]
+    if (!length(vals)) {
+      showNotification("Pas de valeurs numériques dans le raster chargé (animation).", type = "error")
+      return()
+    }
+    
+    pal <- colorNumeric("viridis", domain = vals, na.color = "transparent")
+    
+    e <- raster::extent(r_raster)
+    
+    leafletProxy("map_anim") |>
+      clearMarkers() |>
+      clearShapes() |>
+      clearControls() |>
+      addTiles() |>
+      addRasterImage(
+        r_raster,
+        colors  = pal,
+        opacity = 0.8,
+        project = TRUE
+      ) |>
+      addLegend(
+        pal    = pal,
+        values = vals,
+        title  = leg_title
+      ) |>
+      fitBounds(e@xmin, e@ymin, e@xmax, e@ymax)
+  })
+  
+  # ---- KPI réactifs ----
+  # kpi_nuits <- reactiveVal("—")
+  # kpi_froid <- reactiveVal("—")
   
   # KPIs (placeholders à remplacer par de vrais calculs) ----
   output$kpi_jours_zero <- renderText({
