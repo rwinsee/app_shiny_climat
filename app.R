@@ -213,6 +213,7 @@ ui <- navbarPage(
   ),
   
   # Onglet : À propos ----
+  # Onglet : À propos ----
   tabPanel(
     "À propos",
     fluidPage(
@@ -245,7 +246,21 @@ ui <- navbarPage(
       
       tags$hr(),
       
-      h3("Équipe & contexte"),
+      h3("Équipe"),
+      tags$ul(
+        tags$li("Julien AVINÉE (Consultant adaptation - Carbone 4)"),
+        tags$li("Madeleine D’ARRENTIERES (Consultante adaptation - Carbone 4)"),
+        tags$li("Maëlle ABRAHAM (Consultante adaptation - Carbone 4)"),
+        tags$li("Etienne PAUTHENET (Data Scientist - IRD Brest)"),
+        tags$li("Lucio LURASCHI (Ingénieur logiciel - EDF)"),
+        tags$li("Sandrine PARADOWSKI (Géomaticienne - DDT 77 )"),
+        tags$li("Romuald WEIDMANN (Développeur R - INSEE)"),
+        tags$li("Justine SOMMERLATT (Data Scientist - BKW)")
+      ),
+      
+      tags$hr(),
+      
+      h3("Contexte"),
       p("Application développée dans le cadre du hackathon « Climat des données », défi datavisualisation sur les indicateurs climatiques alpins."),
       p("Projet collaboratif associant profils data science, climatologie et développement Shiny pour produire un outil pédagogique et réutilisable.")
     )
