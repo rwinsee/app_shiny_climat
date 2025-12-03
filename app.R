@@ -28,29 +28,110 @@ app_theme <- bs_theme(
   info = "#8ecae6"
 )
 
+# # ---- Récupérer les fichiers NetCDF depuis GitHub ----
+# # ---- Nuits tropicales ----
+# api_url_trop <- "https://api.github.com/repos/justinesommerlatt/Hackathon-Meteo-France/contents/Tropical_data"
+# 
+# res_trop <- GET(api_url_trop)
+# stop_for_status(res_trop)
+# 
+# files_meta_trop <- fromJSON(content(res_trop, as = "text", encoding = "UTF-8"))
+# 
+# tropical_nc_urls <- files_meta_trop$download_url[grepl("\\.nc$", files_meta_trop$name)]
+# names(tropical_nc_urls) <- files_meta_trop$name[grepl("\\.nc$", files_meta_trop$name)]
+# 
+# 
+# # ---- Jours de gel (freezing days) ----
+# api_url_froid <- "https://api.github.com/repos/justinesommerlatt/Hackathon-Meteo-France/contents/Isotherme0_data"
+# 
+# res_froid <- GET(api_url_froid)
+# stop_for_status(res_froid)
+# 
+# files_meta_froid <- fromJSON(content(res_froid, as = "text", encoding = "UTF-8"))
+# 
+# freezing_nc_urls <- files_meta_froid$download_url[grepl("\\.nc$", files_meta_froid$name)]
+# names(freezing_nc_urls) <- files_meta_froid$name[grepl("\\.nc$", files_meta_froid$name)]
 # ---- Récupérer les fichiers NetCDF depuis GitHub ----
+
+# Petite fonction "sécure" pour éviter que l'app plante si GitHub renvoie 403/500/etc.
+safe_get <- function(url) {
+  res <- try(httr::GET(url), silent = TRUE)
+  if (inherits(res, "try-error") || httr::http_error(res)) {
+    warning("⚠️ Impossible d’accéder à ", url, " (GitHub API). Passage en mode fallback.")
+    return(NULL)
+  }
+  res
+}
+
 # ---- Nuits tropicales ----
 api_url_trop <- "https://api.github.com/repos/justinesommerlatt/Hackathon-Meteo-France/contents/Tropical_data"
 
-res_trop <- GET(api_url_trop)
-stop_for_status(res_trop)
+res_trop <- safe_get(api_url_trop)
 
-files_meta_trop <- fromJSON(content(res_trop, as = "text", encoding = "UTF-8"))
-
-tropical_nc_urls <- files_meta_trop$download_url[grepl("\\.nc$", files_meta_trop$name)]
-names(tropical_nc_urls) <- files_meta_trop$name[grepl("\\.nc$", files_meta_trop$name)]
-
+if (!is.null(res_trop)) {
+  files_meta_trop <- jsonlite::fromJSON(
+    httr::content(res_trop, as = "text", encoding = "UTF-8")
+  )
+  
+  tropical_nc_urls <- files_meta_trop$download_url[grepl("\\.nc$", files_meta_trop$name)]
+  names(tropical_nc_urls) <- files_meta_trop$name[grepl("\\.nc$", files_meta_trop$name)]
+  
+} else {
+  # Fallback si l’API GitHub ne répond pas dans le pod :
+  # on force un vecteur de longueur 11 pour être compatible avec
+  #   - choose_nc_url() (indices 1,5,8,11)
+  #   - le mode décades (animation)
+  
+  trop_base <- c(
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Tropical_data/tropical_days_per_year_19900101-19991231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Tropical_data/tropical_days_per_year_20200101-20291231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Tropical_data/tropical_days_per_year_20500101-20591231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Tropical_data/tropical_days_per_year_20800101-20891231.nc"
+  )
+  
+  # On remplit 11 cases en approximant les décades :
+  #  1–4  ~ climat 1990
+  #  5–7  ~ climat 2020
+  #  8–10 ~ climat 2050
+  #  11   ~ climat 2080
+  tropical_nc_urls <- rep(trop_base[1], 11)
+  tropical_nc_urls[5]  <- trop_base[2]
+  tropical_nc_urls[8]  <- trop_base[3]
+  tropical_nc_urls[11] <- trop_base[4]
+  
+  names(tropical_nc_urls) <- basename(tropical_nc_urls)
+}
 
 # ---- Jours de gel (freezing days) ----
 api_url_froid <- "https://api.github.com/repos/justinesommerlatt/Hackathon-Meteo-France/contents/Isotherme0_data"
 
-res_froid <- GET(api_url_froid)
-stop_for_status(res_froid)
+res_froid <- safe_get(api_url_froid)
 
-files_meta_froid <- fromJSON(content(res_froid, as = "text", encoding = "UTF-8"))
-
-freezing_nc_urls <- files_meta_froid$download_url[grepl("\\.nc$", files_meta_froid$name)]
-names(freezing_nc_urls) <- files_meta_froid$name[grepl("\\.nc$", files_meta_froid$name)]
+if (!is.null(res_froid)) {
+  files_meta_froid <- jsonlite::fromJSON(
+    httr::content(res_froid, as = "text", encoding = "UTF-8")
+  )
+  
+  freezing_nc_urls <- files_meta_froid$download_url[grepl("\\.nc$", files_meta_froid$name)]
+  names(freezing_nc_urls) <- files_meta_froid$name[grepl("\\.nc$", files_meta_froid$name)]
+  
+} else {
+  # Fallback complet : 11 fichiers, un par "décennie" (approx)
+  freezing_nc_urls <- c(
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_19900101-19991231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20000101-20091231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20100101-20141231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20150101-20191231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20200101-20291231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20300101-20391231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20400101-20491231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20500101-20591231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20600101-20691231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20700101-20791231.nc",
+    "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Isotherme0_data/freezing_days_per_year_20800101-20891231.nc"
+  )
+  names(freezing_nc_urls) <- basename(freezing_nc_urls)
+}
 
 # ---- Grille Alpes pour la géolocalisation ----
 grid_url <- "https://raw.githubusercontent.com/justinesommerlatt/Hackathon-Meteo-France/main/Alpes_grid.nc"
