@@ -524,7 +524,7 @@ ui <- navbarPage(
           width = 9,  # 9/12 de la largeur pour laisser un maximum de place à la carte
           leafletOutput("map_climat", height = "70vh")  # “70vh” = 70% de la hauteur de la fenêtre
         )
-      )
+      )))
       ,
 
       # Onglet : Animations ----
@@ -780,16 +780,14 @@ ui <- navbarPage(
       h3("Solution proposée : Explor'Alpes"),
       p("Avec Explor'Alpes, nous nous concentrons sur deux signaux forts du changement climatique dans les Alpes :"),
       tags$ul(
-        tags$ul(
-          tags$li(
-            strong("L’évolution de l’isotherme 0°C"),
-            " à l’échelle régionale (jours de gel)."
-          ),
-          tags$li(
-            strong("La fréquence d’apparition des nuits tropicales"),
-            " définies comme des nuits où la température ne descend pas sous 20°C."
-          )
+        tags$li(
+          strong("L’évolution de l’isotherme 0°C"),
+          " à l’échelle régionale (jours de gel)."
         ),
+        tags$li(
+          strong("La fréquence d’apparition des nuits tropicales"),
+          " définies comme des nuits où la température ne descend pas sous 20°C."
+        )
       ),
       p("L’application vise à vulgariser ces indicateurs via une carte interactive et quelques indicateurs synthétiques (KPIs) afin de rendre les résultats accessibles au plus grand nombre."),
       
@@ -934,18 +932,17 @@ ui <- navbarPage(
       
       h3("Équipe"),
       tags$ul(
+        tags$li("Maëlle ABRAHAM (Consultante adaptation - Carbone 4)"),
         tags$li("Julien AVINÉE (Consultant adaptation - Carbone 4)"),
         tags$li("Madeleine D’ARRENTIERES (Consultante adaptation - Carbone 4)"),
-        tags$li("Maëlle ABRAHAM (Consultante adaptation - Carbone 4)"),
-        tags$li("Etienne PAUTHENET (Data Scientist - IRD Brest)"),
         tags$li("Lucio LURASCHI (Ingénieur logiciel - EDF)"),
+        tags$li("Etienne PAUTHENET (Data Scientist - IRD Brest)"),
         tags$li("Sandrine PARADOWSKI (Géomaticienne - DDT 77)"),
-        tags$li("Romuald WEIDMANN (Développeur R - INSEE)"),
-        tags$li("Justine SOMMERLATT (Data Scientist - BKW)")
+        tags$li("Justine SOMMERLATT (Data Scientist - BKW)"),
+        tags$li("Romuald WEIDMANN (Développeur R - INSEE)")
       )
     )
   )
-  
 )
 
 ### server.r
